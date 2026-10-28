@@ -1,56 +1,59 @@
 # Archery MCP
 
+**English** | [简体中文](README.zh-CN.md)
+
 [![test](https://github.com/qinghuan50/archery-sql-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/qinghuan50/archery-sql-mcp/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18.3%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 
-把开源 SQL 审核平台 [Archery](https://github.com/hhyo/Archery) 的日常操作封装成
-[MCP](https://modelcontextprotocol.io) 服务：**账号密码登录 → 查实例/库/表 → 执行只读 SQL →
-提交 SQL 上线工单 → 查看工单与审核结果**。
+Wrap the everyday operations of the open-source SQL audit platform
+[Archery](https://github.com/hhyo/Archery) into an [MCP](https://modelcontextprotocol.io) server:
+**password login → browse instances / databases / tables → run read-only SQL →
+submit SQL release tickets → inspect tickets and audit results**.
 
-**Node.js 实现，零第三方依赖**，不需要 Python。任何支持 MCP stdio 的客户端都可以接入，
-例如 Claude Desktop、Cursor、DeepSeek Harness 以及自研 Agent。项目不修改 Archery，
-只调用它现有的 HTTP 接口。
+**Pure Node.js, zero third-party dependencies** — no Python required. Works with any MCP stdio
+client, such as Claude Desktop, Cursor, DeepSeek Harness or your own agent. The project does not
+modify Archery; it only calls Archery's existing HTTP APIs.
 
 ---
 
-## 功能
+## Features
 
-| 能力 | 说明 |
+| Capability | Description |
 | --- | --- |
-| 登录 | 用户名密码自动登录，处理 Django CSRF 与 session；支持复用浏览器 Cookie（2FA / SSO 场景） |
-| 实例与结构 | 列出有权限的实例、数据库、表结构 |
-| SQL 查询 | 默认只读白名单（SELECT / SHOW / DESCRIBE / EXPLAIN），拦截写操作、锁语句、文件导出、`/*! */` 版本注释；限制并截断返回行数 |
-| 工单提交 | 真实创建 Archery SQL 上线工单（进入审批流，不直接执行 SQL） |
-| 工单查看 | 我的工单 / 待我审核工单、工单详情、SQL 内容、自动审核结果、操作日志 |
-| 版本兼容 | Archery 1.x（最新 release v1.14 的 REST + 页面接口）与 master（2.x 开发版 REST API）自动探测 |
+| Login | username/password login with Django CSRF and session handling; can reuse browser cookies for 2FA / SSO setups |
+| Instances & schema | list the instances you can access, plus databases and table schemas |
+| SQL queries | read-only whitelist by default (SELECT / SHOW / DESCRIBE / EXPLAIN); blocks writes, lock reads, file export and `/*! */` version comments; caps and truncates returned rows |
+| Ticket submission | creates real Archery SQL release tickets (enters the approval flow; never executes SQL directly) |
+| Ticket inspection | my tickets / tickets awaiting my review, details, SQL, automated audit results and operation logs |
+| Version support | auto-detects Archery 1.x (latest release v1.14: REST + page endpoints) and master (2.x dev: REST API) |
 
-> **Archery 1.14 注意**：`/api/v1/workflow*` 工单接口受 `API_USER_WHITELIST` 限制。
-> 使用 `archery_submit_workflow`、`archery_list_workflows`、`archery_get_workflow` 前，
-> 请让管理员在 **系统设置 → API_USER_WHITELIST** 中加入该账号，否则会返回 403。
-> 查询、实例、库表接口不受此限制。
+> **Archery 1.14 note**: the `/api/v1/workflow*` endpoints are gated by `API_USER_WHITELIST`.
+> Before using `archery_submit_workflow`, `archery_list_workflows` or `archery_get_workflow`,
+> ask an admin to add the account under **System Settings → API_USER_WHITELIST**, otherwise
+> those calls return 403. Query, instance and schema endpoints are not affected.
 
-### 明确不做的事
+### Out of scope
 
-- 不直接执行工单（不会自动 approve / execute / 上线），避免 Agent 误操作生产库；
-- 不绕过 Archery 自身的权限、查询审核、脱敏与工单流程；
-- 不内置任何账号、密码或公司地址，全部由本地配置提供。
+- Never executes tickets (no auto approve / execute / release), so an agent cannot accidentally touch production;
+- Never bypasses Archery's own permissions, query auditing, data masking or ticket workflow;
+- Ships no accounts, passwords or company addresses — everything comes from local configuration.
 
 ---
 
-## 快速开始
+## Quick start
 
-要求：**Node.js 18.3+**，无需 `npm install`，无第三方依赖。
+Requirements: **Node.js 18.3+**. No `npm install` needed, no third-party dependencies.
 
 ```bash
 cd archery-mcp
-# 复制并编辑配置
+# copy and edit the configuration
 cp config.example.json config.json      # Windows: copy config.example.json config.json
 
 node bin/archery-mcp.mjs --config config.json --check
 ```
 
-`--check` 会实际登录一次并输出版本类型、可访问实例数量：
+`--check` performs a real login and prints the detected flavor and the number of accessible instances:
 
 ```json
 {
@@ -69,7 +72,8 @@ node bin/archery-mcp.mjs --config config.json --check
 }
 ```
 
-检查通过后，启动 MCP 服务（stdio，由客户端拉起，一般不需要手动运行）：
+Once the check passes, start the MCP server (stdio; normally launched by the client, so you rarely
+need to run it by hand):
 
 ```bash
 node bin/archery-mcp.mjs --config config.json
@@ -77,37 +81,38 @@ node bin/archery-mcp.mjs --config config.json
 
 ---
 
-## 本地测试（不连真实数据库）
+## Local testing (no real database)
 
-项目自带 mock Archery（`test/mock-archery.mjs`），可以验证登录、查询、工单与 MCP 协议，
-不会碰生产库。
+The project ships a mock Archery (`test/mock-archery.mjs`) so you can exercise login, queries,
+tickets and the MCP protocol without touching a production database.
 
 ```bash
 node --test test/client.test.mjs test/mcp.test.mjs
-# 或
+# or
 npm test
 ```
 
-当前 **15 个测试**全部通过，覆盖：
+All **15 tests** pass, covering:
 
-- 账号密码登录、CSRF、会话复用、错误密码；
-- v1 查询参数、行数限制与结果截断；
-- 只读校验（写语句、多语句、`FOR UPDATE`、`OUTFILE`、`/*! */`、`LOAD_FILE`）；
-- v1/v2 提交工单、列表、详情、审核结果与日志；
-- v1 工单接口 403 时的 `API_USER_WHITELIST` 提示；
-- Session Cookie 模式；
-- MCP stdio 协议：`initialize`、`tools/list`、`tools/call` 成功与错误路径；
-- `--check` 自检命令。
+- password login, CSRF, session reuse and wrong passwords;
+- v1 query parameters, row limits and result truncation;
+- read-only validation (writes, multiple statements, `FOR UPDATE`, `OUTFILE`, `/*! */`, `LOAD_FILE`);
+- v1/v2 ticket submission, listing, details, audit results and logs;
+- the `API_USER_WHITELIST` hint when v1 ticket endpoints return 403;
+- session-cookie mode;
+- MCP stdio protocol: `initialize`, `tools/list`, `tools/call` success and error paths;
+- the `--check` self-test command.
 
-另外已在真实 Archery 1.x 环境验证：登录、24 个实例、库/表列表、表结构、`SELECT 1` / `SHOW` 查询、
-工单列表（2.6 万条）与工单详情。**真实工单提交没有执行**，避免产生审批单；表级 `SELECT`
-是否可用取决于 Archery 查询权限配置。
+The project has also been validated against a real Archery 1.x deployment: login, 24 instances,
+database/table listing, table schemas, `SELECT 1` / `SHOW` queries, ticket list (26k tickets) and
+ticket details. **Real ticket submission was never performed**, to avoid creating approval requests;
+whether table-level `SELECT` works depends on your Archery query permissions.
 
 ---
 
-## 接入 MCP 客户端
+## Connect an MCP client
 
-### 通用 JSON 配置（Claude Desktop / Cursor 等）
+### Generic JSON config (Claude Desktop / Cursor, etc.)
 
 ```json
 {
@@ -124,24 +129,27 @@ npm test
 }
 ```
 
-把 `command` 换成真实 Node 可执行文件路径（Windows 上不建议依赖 Microsoft Store 的别名），
-`args` 指向本项目。
+Replace `command` with the real Node executable path (on Windows, avoid the Microsoft Store alias)
+and point `args` at this project.
 
-### DeepSeek Harness（DSH）
+### DeepSeek Harness (DSH)
 
-仓库内的 `dsh-bundle/` 是一个只做 MCP 连接的 DSH bundle，安装后会在插件列表中出现
-“Archery 数据库工单”连接，并把 8 个 `archery_*` 工具注册为 `mcp__archery__*`。
-安装前先把 `dsh-bundle/cordis.patch.yml` 中的 Node 路径、脚本路径、配置文件路径改成自己的，然后：
+`dsh-bundle/` is a DSH bundle that only wires up the MCP connection. After installation, an
+"Archery 数据库工单" connection appears in the plugin list and the 8 `archery_*` tools are registered
+as `mcp__archery__*`. Before installing, update the Node path, script path and config path in
+`dsh-bundle/cordis.patch.yml`, then run:
 
 ```text
 plugin_manager(action="install_bundle", target="C:\\path\\to\\archery-mcp\\dsh-bundle")
 ```
 
-修改 `config.json` 后需要重启 DSH（或重新加载该 MCP 连接），因为配置在进程启动时读取。
+After editing `config.json`, restart DSH (or reload the MCP connection), because configuration is
+read at process start.
 
-> 安装 bundle 会写入当前 DSH profile，并影响该 profile 下的所有会话；请确认路径后再安装。
+> Installing the bundle writes to the current DSH profile and affects every session in that
+> profile; double-check the paths before installing.
 
-### 环境变量方式（不写配置文件）
+### Environment variables (no config file)
 
 ```bash
 export ARCHERY_BASE_URL="https://archery.example.com"
@@ -150,7 +158,7 @@ export ARCHERY_PASSWORD="******"
 node bin/archery-mcp.mjs
 ```
 
-PowerShell：
+PowerShell:
 
 ```powershell
 $env:ARCHERY_BASE_URL = "https://archery.example.com"
@@ -159,47 +167,47 @@ $env:ARCHERY_PASSWORD = "******"
 node bin/archery-mcp.mjs
 ```
 
-环境变量优先级高于配置文件。
+Environment variables take precedence over the config file.
 
 ---
 
-## 配置项
+## Configuration
 
-| 配置键 | 环境变量 | 默认值 | 说明 |
+| Key | Env var | Default | Description |
 | --- | --- | --- | --- |
-| `base_url` | `ARCHERY_BASE_URL` | 必填 | Archery 站点地址，如 `https://archery.example.com` |
-| `username` | `ARCHERY_USERNAME` | 空 | 登录账号 |
-| `password` | `ARCHERY_PASSWORD` | 空 | 登录密码 |
-| `session_cookie` | `ARCHERY_SESSION_COOKIE` | 空 | 浏览器中的 `sessionid`，配置后跳过账号密码登录 |
-| `csrf_cookie` | `ARCHERY_CSRF_COOKIE` | 空 | 浏览器中的 `csrftoken`，与 `session_cookie` 搭配 |
-| `verify_tls` | `ARCHERY_VERIFY_TLS` | `true` | 是否校验 HTTPS 证书；仅内网自签证书时设为 `false` |
-| `timeout` | `ARCHERY_TIMEOUT` | `30` | HTTP 超时秒数 |
-| `api_flavor` | `ARCHERY_API_FLAVOR` | `auto` | `auto` / `v1` / `v2`；自动探测失败时手动指定 |
-| `default_limit` | `ARCHERY_DEFAULT_LIMIT` | `100` | 查询默认行数 |
-| `max_limit` | `ARCHERY_MAX_LIMIT` | `5000` | 查询行数硬上限 |
-| `max_rows` | `ARCHERY_MAX_ROWS` | `200` | 返回给模型的预览行数，超出截断并标记 |
-| `allow_write_sql` | `ARCHERY_ALLOW_WRITE_SQL` | `false` | 是否允许查询工具执行非只读 SQL；**强烈不建议开启** |
+| `base_url` | `ARCHERY_BASE_URL` | required | Archery site URL, e.g. `https://archery.example.com` |
+| `username` | `ARCHERY_USERNAME` | empty | login account |
+| `password` | `ARCHERY_PASSWORD` | empty | login password |
+| `session_cookie` | `ARCHERY_SESSION_COOKIE` | empty | browser `sessionid`; skips password login when set |
+| `csrf_cookie` | `ARCHERY_CSRF_COOKIE` | empty | browser `csrftoken`, paired with `session_cookie` |
+| `verify_tls` | `ARCHERY_VERIFY_TLS` | `true` | verify HTTPS certificates; set to `false` only for self-signed intranet certs |
+| `timeout` | `ARCHERY_TIMEOUT` | `30` | HTTP timeout in seconds |
+| `api_flavor` | `ARCHERY_API_FLAVOR` | `auto` | `auto` / `v1` / `v2`; set manually if auto-detection fails |
+| `default_limit` | `ARCHERY_DEFAULT_LIMIT` | `100` | default query row limit |
+| `max_limit` | `ARCHERY_MAX_LIMIT` | `5000` | hard row limit for queries |
+| `max_rows` | `ARCHERY_MAX_ROWS` | `200` | preview rows returned to the model; extra rows are truncated and flagged |
+| `allow_write_sql` | `ARCHERY_ALLOW_WRITE_SQL` | `false` | allow non-read-only SQL in the query tool; **strongly discouraged** |
 
-配置文件路径用 `--config` 或 `ARCHERY_MCP_CONFIG` 指定。
+Set the config path with `--config` or `ARCHERY_MCP_CONFIG`.
 
 ---
 
-## 工具列表
+## Tools
 
-| 工具 | 用途 | 关键参数 |
+| Tool | Purpose | Key parameters |
 | --- | --- | --- |
-| `archery_list_instances` | 列出可访问实例 | `tag`=`can_read`/`can_write`，`search` |
-| `archery_list_databases` | 列出实例下数据库 | `instance` |
-| `archery_describe_table` | 查看表结构 | `instance`、`database`、`table`、`schema` |
-| `archery_query` | 执行只读 SQL | `instance`、`database`、`sql`、`limit` |
-| `archery_list_groups` | 列出可提交的资源组 | — |
-| `archery_submit_workflow` | 创建 SQL 上线工单 | `instance`、`database`、`sql`、`workflow_name`、`group`、`backup` 等 |
-| `archery_list_workflows` | 工单列表 / 待审列表 | `scope`=`mine`/`audit`、`status`、`search`、`limit`、`offset` |
-| `archery_get_workflow` | 工单详情、SQL、审核结果、日志 | `workflow_id`（v1）或 `audit_id`（v2）、`include_logs` |
+| `archery_list_instances` | list accessible instances | `tag`=`can_read`/`can_write`, `search` |
+| `archery_list_databases` | list databases on an instance | `instance` |
+| `archery_describe_table` | show a table schema | `instance`, `database`, `table`, `schema` |
+| `archery_query` | run read-only SQL | `instance`, `database`, `sql`, `limit` |
+| `archery_list_groups` | list resource groups you can submit to | — |
+| `archery_submit_workflow` | create a SQL release ticket | `instance`, `database`, `sql`, `workflow_name`, `group`, `backup` |
+| `archery_list_workflows` | ticket list / awaiting review | `scope`=`mine`/`audit`, `status`, `search`, `limit`, `offset` |
+| `archery_get_workflow` | ticket details, SQL, audit results and logs | `workflow_id` (v1) or `audit_id` (v2), `include_logs` |
 
-### 返回示例
+### Sample responses
 
-查询：
+Query:
 
 ```json
 {
@@ -220,63 +228,66 @@ node bin/archery-mcp.mjs
 }
 ```
 
-提交工单：
+Ticket submission:
 
 ```json
 {
   "workflow_id": 1234,
   "audit_id": 5678,
-  "workflow_name": "增加 age 字段",
+  "workflow_name": "add age column",
   "instance": "prod-mysql",
   "database": "app_db",
   "group_id": 10,
-  "group_name": "DBA组",
+  "group_name": "DBA",
   "status": "workflow_manreviewing",
-  "message": "提交成功"
+  "message": "submitted"
 }
 ```
 
 ---
 
-## 使用示例
+## Usage examples
 
 ```text
-帮我查一下 prod-mysql 的 app_db，users 表最近注册的 20 个用户，只看 id、name、created_at。
+Show me the 20 most recently registered users in app_db.users on prod-mysql,
+only id, name and created_at.
 
-把下面这条 SQL 提交成 DBA组 的工单，名称“订单表增加索引”：
+Submit the following SQL as a ticket in the DBA group named "add index on orders":
 ALTER TABLE orders ADD INDEX idx_user_id (user_id);
 
-看看我待审核的工单，以及每条工单的自动审核结果。
+List the tickets awaiting my review, with the automated audit result for each.
 ```
 
-模型会先调用 `archery_list_instances` / `archery_list_databases` 确认目标，再执行查询或提交。
+The model typically calls `archery_list_instances` / `archery_list_databases` to confirm the target
+before querying or submitting.
 
 ---
 
-## Archery 接口适配
+## Archery API compatibility
 
-不同版本的 Archery 接口不同，客户端会自动探测，也可以手动指定：
+Archery versions expose different APIs; the client auto-detects the flavor, or you can pin it:
 
-| 操作 | Archery 1.x（v1.14） | Archery master（2.x 开发版） |
+| Action | Archery 1.x (v1.14) | Archery master (2.x dev) |
 | --- | --- | --- |
-| 登录 | `GET /login/` + `POST /authenticate/` | 同左 |
-| 实例列表 | `GET /group/user_all_instances/` | `GET /api/v1/sqlquery/instances/` |
-| 数据库/表 | `GET /instance/instance_resource/`、`POST /instance/describetable/` | `GET /api/v1/sqlquery/resources/`、`POST /api/v1/sqlquery/describetable/` |
-| 查询 | `POST /query/`（表单） | `POST /api/v1/sqlquery/execute/`（JSON） |
-| 提交工单 | `POST /api/v1/workflow/` | `POST /api/v1/sql-workflows/` |
-| 工单列表 | `GET /api/v1/workflow/` / `POST /api/v1/workflow/auditlist/` | `POST /api/v1/sql-workflows/list/` / `audit-list/` |
-| 工单详情 | `GET /api/v1/workflow/?workflow_id=` + `POST /api/v1/workflow/log/` | `GET /api/v1/sql-workflows/<audit_id>/` + `/content/` + `/logs/` |
+| Login | `GET /login/` + `POST /authenticate/` | same |
+| Instance list | `GET /group/user_all_instances/` | `GET /api/v1/sqlquery/instances/` |
+| Databases / tables | `GET /instance/instance_resource/`, `POST /instance/describetable/` | `GET /api/v1/sqlquery/resources/`, `POST /api/v1/sqlquery/describetable/` |
+| Query | `POST /query/` (form) | `POST /api/v1/sqlquery/execute/` (JSON) |
+| Submit ticket | `POST /api/v1/workflow/` | `POST /api/v1/sql-workflows/` |
+| Ticket list | `GET /api/v1/workflow/` / `POST /api/v1/workflow/auditlist/` | `POST /api/v1/sql-workflows/list/` / `audit-list/` |
+| Ticket details | `GET /api/v1/workflow/?workflow_id=` + `POST /api/v1/workflow/log/` | `GET /api/v1/sql-workflows/<audit_id>/` + `/content/` + `/logs/` |
 
-如果贵司的 Archery 版本与以上不同，优先设置 `api_flavor`；仍不兼容时，只需修改
-`src/client.mjs` 中对应的路径与参数。
+If your Archery version differs, set `api_flavor` first; if it is still incompatible, adjust the
+paths and parameters in `src/client.mjs`.
 
 ### 2FA / SSO / CAS
 
-启用了二次验证或统一登录时，账号密码登录不会直接得到会话。处理方式：
+With two-factor authentication or a unified login portal, username/password login does not yield a
+session. Workarounds:
 
-1. 浏览器正常登录 Archery；
-2. 开发者工具 → Application → Cookies → 复制 `sessionid`（以及 `csrftoken`）；
-3. 写入配置：
+1. Log in to Archery in your browser normally;
+2. DevTools → Application → Cookies → copy `sessionid` (and `csrftoken`);
+3. Put them into the configuration:
 
 ```json
 {
@@ -287,50 +298,60 @@ ALTER TABLE orders ADD INDEX idx_user_id (user_id);
 }
 ```
 
-Cookie 会过期，适合本地临时使用；长期运行建议为 Agent 申请独立的只读/工单账号并关闭该账号 2FA，
-或通过企业 SSO 网关提供固定会话。
+Cookies expire, so this suits short-lived local use. For long-running setups, create a dedicated
+read-only/ticketing account for the agent with 2FA disabled, or provide a fixed session through
+your SSO gateway.
 
 ---
 
-## 安全说明
+## Security
 
-- **最小权限**：给 Agent 单独建 Archery 账号，只授予需要的实例 `can_read` / `can_write` 标签和资源组；
-  查询与工单权限仍由 Archery 控制。
-- **只读优先**：查询工具默认拒绝写语句；`allow_write_sql` 仅用于特殊场景，开启后仍受 Archery 账号权限约束。
-- **写操作**：`archery_submit_workflow` 会真实创建工单并通知审批人；调用前确认实例、库、工单名与 SQL。
-- **数据外泄**：查询结果会进入模型上下文。生产库敏感字段请依赖 Archery 的数据脱敏配置，或限制返回列。
-- **凭证保管**：优先用环境变量或仅本人可读的配置文件；不要把 `config.json`、Cookie 提交到 Git。
-- **TLS**：默认校验证书；关闭校验只应在受控内网使用。
-- **审计**：Archery 会记录查询日志与工单操作日志；MCP 服务自身只向 stderr 输出工具名与错误，不打印密码和 SQL。
+- **Least privilege**: create a dedicated Archery account for the agent, granting only the required
+  instance `can_read` / `can_write` tags and resource groups; query and ticket permissions are still
+  enforced by Archery.
+- **Read-only first**: the query tool rejects writes by default; `allow_write_sql` is for edge cases
+  and is still bounded by the Archery account permissions.
+- **Writes**: `archery_submit_workflow` really creates tickets and notifies approvers — verify the
+  instance, database, name and SQL before calling it.
+- **Data exposure**: query results enter the model context. Rely on Archery data masking for sensitive
+  production fields, or limit the returned columns.
+- **Credentials**: prefer environment variables or a config file readable only by you; never commit
+  `config.json` or cookies to Git.
+- **TLS**: certificates are verified by default; disabling verification should only happen on a
+  controlled intranet.
+- **Auditing**: Archery records query and ticket operation logs; the MCP server itself only prints tool
+  names and errors to stderr, never passwords or SQL.
 
-SQL 只读校验是**额外护栏，不是安全边界**；真正的权限边界是 Archery 账号和数据库账号。
+The read-only SQL check is an **extra guardrail, not a security boundary**; the real boundary is the
+Archery account and the database account.
 
 ---
 
-## 目录结构
+## Project layout
 
 ```text
 archery-mcp/
-├── bin/archery-mcp.mjs   # CLI 入口
+├── bin/archery-mcp.mjs   # CLI entry
 ├── src/
-│   ├── config.mjs        # JSON + 环境变量配置
-│   ├── http.mjs          # 标准库 HTTP 客户端（Cookie/CSRF/gzip/TLS/重定向）
-│   ├── client.mjs        # Archery v1/v2 接口封装
-│   ├── sqlguard.mjs      # 只读 SQL 校验与语句拆分
-│   ├── tools.mjs         # 8 个 MCP 工具定义与处理
-│   ├── mcp.mjs           # MCP stdio JSON-RPC 服务
-│   └── cli.mjs           # 命令行入口
+│   ├── config.mjs        # JSON + env configuration
+│   ├── http.mjs          # stdlib HTTP client (Cookie/CSRF/gzip/TLS/redirects)
+│   ├── client.mjs        # Archery v1/v2 API wrapper
+│   ├── sqlguard.mjs      # read-only SQL validation and statement splitting
+│   ├── tools.mjs         # the 8 MCP tool definitions and handlers
+│   ├── mcp.mjs           # MCP stdio JSON-RPC server
+│   └── cli.mjs           # command-line entry
 ├── test/
-│   ├── mock-archery.mjs  # 本地模拟 Archery
+│   ├── mock-archery.mjs  # local Archery mock
 │   ├── client.test.mjs
 │   └── mcp.test.mjs
-├── dsh-bundle/           # 可选的 DSH MCP 连接 bundle
+├── dsh-bundle/           # optional DSH MCP connection bundle
 ├── config.example.json
+├── README.zh-CN.md
 └── package.json
 ```
 
-## 后续可扩展
+## Roadmap
 
-- 审批 / 执行工单工具（默认不开放，建议加二次确认与独立开关）；
-- Streamable HTTP 传输与多租户（按请求切换账号）；
-- 与 Archery 的 Swagger（`/api/schema/`）自动生成工具，减少版本适配成本。
+- Approve / execute ticket tools (closed by default; requires explicit confirmation and a separate switch);
+- Streamable HTTP transport and multi-tenancy (per-request account switching);
+- Generate tools automatically from Archery's Swagger (`/api/schema/`) to reduce version adaptation work.
