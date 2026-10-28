@@ -1,0 +1,39 @@
+{
+  "name": "archery-sql-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server for Archery: SQL query, schema inspection and SQL workflow tickets",
+  "license": "MIT",
+  "bin": {
+    "archery-mcp": "bin/archery-mcp.mjs"
+  },
+  "engines": {
+    "node": ">=18.3"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "archery",
+    "sql",
+    "dba",
+    "workflow"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qinghuan50/archery-sql-mcp.git"
+  },
+  "homepage": "https://github.com/qinghuan50/archery-sql-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/qinghuan50/archery-sql-mcp/issues"
+  },
+  "scripts": {
+    "test": "node --test test/client.test.mjs test/mcp.test.mjs",
+    "check": "node bin/archery-mcp.mjs --config config.json --check",
+    "start": "node bin/archery-mcp.mjs --config config.json"
+  },
+  "files": [
+    "bin",
+    "src"
+  ]
+}

@@ -1,0 +1,18 @@
+# Archery MCP 连接（stdio / Node）
+#
+# 安装前请按本机环境修改：
+#   command  : Node.js 可执行文件绝对路径
+#   args     : bin/archery-mcp.mjs 的绝对路径
+#   ARCHERY_MCP_CONFIG: 配置文件路径
+- insert:
+    - id: archery-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: archery
+        transport: stdio
+        command: 'C:\path\to\node.exe'
+        args: ['C:\path\to\archery-mcp\bin\archery-mcp.mjs']
+        cwd: 'C:\path\to\archery-mcp'
+        env:
+          ARCHERY_MCP_CONFIG: 'C:\path\to\archery-mcp\config.json'
+        failOnStartupError: false

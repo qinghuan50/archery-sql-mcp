@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Archery 数据库工单",
+    "description": "连接企业 Archery 平台：查询生产库、查看实例与表结构、提交 SQL 上线工单。"
+  }
+}

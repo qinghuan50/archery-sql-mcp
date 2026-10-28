@@ -1,0 +1,12 @@
+{
+  "base_url": "https://archery.example.com",
+  "username": "your-name",
+  "password": "your-password",
+  "verify_tls": true,
+  "timeout": 30,
+  "api_flavor": "auto",
+  "default_limit": 100,
+  "max_limit": 5000,
+  "max_rows": 200,
+  "allow_write_sql": false
+}
